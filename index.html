@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#0f1117">
+<link rel="manifest" href="manifest.webmanifest">
+<title>Piano Trainer</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header id="bar">
+  <button id="btnSongs" class="pill big" title="Songs">♫ <span id="songTitle">Choose a song</span></button>
+
+  <div class="seg" id="modeSeg" title="Practice mode">
+    <button data-mode="follow" class="on" title="Notes only move when you play them">Follow me</button>
+    <button data-mode="wait" title="Notes flow at tempo and pause until you play">Wait</button>
+    <button data-mode="listen" title="Hear the song played">Listen</button>
+  </div>
+
+  <div class="seg" id="handSeg" title="Which hand to practise">
+    <button data-hand="both" class="on">Both</button>
+    <button data-hand="left">Left</button>
+    <button data-hand="right">Right</button>
+  </div>
+
+  <div class="speed" title="Speed">
+    <button id="slower" class="pill">−</button>
+    <span id="speedLbl">100%</span>
+    <button id="faster" class="pill">+</button>
+  </div>
+
+  <button id="btnInput" class="pill" title="Piano connection"><span id="inputDot" class="dot"></span><span id="inputLbl">Connect piano</span></button>
+  <button id="btnFull" class="pill" title="Full screen">⛶</button>
+  <button id="btnSettings" class="pill" title="Settings">⚙</button>
+</header>
+
+<main id="stage">
+  <canvas id="cv"></canvas>
+  <div id="transport">
+    <button id="btnRestart" class="round" title="Start over">⏮</button>
+    <button id="btnPlay" class="round main" title="Play / pause (space)">▶</button>
+    <div id="progress"><div id="progressFill"></div></div>
+    <span id="progressLbl">0 / 0</span>
+  </div>
+  <div id="toast"></div>
+  <div id="empty">
+    <h1>Piano Trainer</h1>
+    <p>Pick a song, connect your piano, and play.<br>In <b>Follow me</b> mode the notes only move when you play them.</p>
+    <button class="pill big primary" id="emptySongs">Choose a song</button>
+  </div>
+</main>
+
+<!-- Songs dialog -->
+<dialog id="dlgSongs">
+  <div class="dlg-head"><h2>Songs</h2><button class="close" data-close>✕</button></div>
+  <div class="add-row">
+    <label class="pill big primary">⬆ Upload MIDI<input type="file" id="fileMidi" accept=".mid,.midi,audio/midi" multiple hidden></label>
+    <button class="pill big" id="btnYouTube">▶ From YouTube</button>
+    <label class="pill big">♪ From audio file<input type="file" id="fileAudio" accept="audio/*,video/*,.mp3,.m4a,.wav,.ogg,.flac,.webm" hidden></label>
+  </div>
+  <div id="trimRow">
+    <span>Only use part of the audio (optional):</span>
+    <label>From <input id="trimFrom" placeholder="0:00" inputmode="numeric"></label>
+    <label>To <input id="trimTo" placeholder="end" inputmode="numeric"></label>
+  </div>
+  <div id="shareBox" hidden>
+    <span>Shared: <b id="shareName"></b> — set From / To if you only want part, then</span>
+    <button class="pill primary" id="shareGo">Convert</button>
+  </div>
+  <div id="ytBox" hidden>
+    <input id="ytUrl" type="url" placeholder="Paste a YouTube piano tutorial link…">
+    <button class="pill primary" id="ytGo">Convert</button>
+    <p class="hint" id="ytHint"></p>
+  </div>
+  <div id="convert" hidden>
+    <div class="conv-lbl" id="convLbl">Working…</div>
+    <div class="bar"><div id="convFill"></div></div>
+  </div>
+  <ul id="songList"></ul>
+</dialog>
+
+<!-- Input dialog -->
+<dialog id="dlgInput">
+  <div class="dlg-head"><h2>Connect your piano</h2><button class="close" data-close>✕</button></div>
+  <div class="choice">
+    <button class="card" id="useMidi">
+      <b>🎹 USB / Bluetooth MIDI</b>
+      <span>Most accurate. Plug the piano into this device with a USB cable. (Chrome, Edge, Android. Not iPad Safari.)</span>
+    </button>
+    <button class="card" id="useMic">
+      <b>🎤 Microphone</b>
+      <span>Works with any piano, including acoustic. Hears single notes and chords. Best in a quiet room.</span>
+    </button>
+  </div>
+  <div id="midiPanel" hidden>
+    <label>MIDI device <select id="midiSelect"></select></label>
+  </div>
+  <div id="micPanel" hidden>
+    <label>Sensitivity <input type="range" id="micSens" min="0" max="100" value="55"></label>
+    <div class="meter"><div id="micLevel"></div></div>
+    <p class="hint">Play a chord — the keys you play light up on the keyboard when they match the song. Raise sensitivity if notes are missed; lower it if notes trigger by themselves.</p>
+    <button class="pill" id="micCalib">Re-measure room noise</button>
+  </div>
+  <p class="hint">You can also tap the on-screen keys.</p>
+</dialog>
+
+<!-- Settings dialog -->
+<dialog id="dlgSettings">
+  <div class="dlg-head"><h2>Settings</h2><button class="close" data-close>✕</button></div>
+  <label class="row"><input type="checkbox" id="optStrict" checked> Chords must be played together (off = notes can be played one at a time)</label>
+  <label class="row"><input type="checkbox" id="optNames" checked> Show note names</label>
+  <label class="row"><input type="checkbox" id="optFit" checked> Fit keyboard to song (off = all 88 keys)</label>
+  <label class="row"><input type="checkbox" id="optSound"> Play sound when I hit notes (only with MIDI / tapping)</label>
+  <label class="row"><input type="checkbox" id="optOther" checked> Play the other hand automatically (Listen sound)</label>
+  <label class="row">Note speed on screen <input type="range" id="optZoom" min="60" max="400" value="180"></label>
+  <label class="row">Split hands at (for single-track songs) <select id="optSplit"></select></label>
+  <p class="hint">Keyboard: <b>Space</b> play/pause · <b>←</b> back · <b>→</b> skip chord · <b>R</b> restart</p>
+</dialog>
+
+<script src="vendor.js"></script>
+<script src="listener.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
